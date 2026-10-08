@@ -68,13 +68,6 @@ static void setup_callbacks(void) {
 #define NTRACKS 4
 #define ASSET_ROOT "ms0:/PSP/GAME/MARIOKART/"
 
-/* Dil: 0=Turkce, 1=English */
-#define LANG_TR 0
-#define LANG_EN 1
-static int gLang = LANG_TR;
-static const char *L(const char *tr, const char *en) { return gLang == LANG_EN ? en : tr; }
-
-
 static unsigned int __attribute__((aligned(16))) list[262144];
 
 #define RGB(r,g,b) (0xFF000000u | ((unsigned)(b) << 16) | ((unsigned)(g) << 8) | (unsigned)(r))
@@ -132,44 +125,57 @@ static void tri2(float x1, float y1, float x2, float y2, float x3, float y3, uns
     sceGuDrawArray(GU_TRIANGLES, VF2, 3, 0, v);
 }
 
-/* ---------- Times New Roman style font (Liberation Serif Bold) ---------- */
-#include "font_times.h"
+/* ---------- 5x7 piksel font (A-Z, 0-9, bazi isaretler) ---------- */
+/* her harf 7 satir, her satir 5 bit (en soldaki bit = 0x10) */
+typedef struct { char c; unsigned char r[7]; } Glyph5;
+static const Glyph5 font5[] = {
+    {'A', {0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11}},
+    {'B', {0x1E, 0x11, 0x11, 0x1E, 0x11, 0x11, 0x1E}},
+    {'C', {0x0E, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0E}},
+    {'D', {0x1E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1E}},
+    {'E', {0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x1F}},
+    {'F', {0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x10}},
+    {'G', {0x0E, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0F}},
+    {'H', {0x11, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11}},
+    {'I', {0x0E, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0E}},
+    {'J', {0x07, 0x02, 0x02, 0x02, 0x02, 0x12, 0x0C}},
+    {'K', {0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11}},
+    {'L', {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1F}},
+    {'M', {0x11, 0x1B, 0x15, 0x15, 0x11, 0x11, 0x11}},
+    {'N', {0x11, 0x19, 0x15, 0x13, 0x11, 0x11, 0x11}},
+    {'O', {0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E}},
+    {'P', {0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10, 0x10}},
+    {'Q', {0x0E, 0x11, 0x11, 0x11, 0x15, 0x12, 0x0D}},
+    {'R', {0x1E, 0x11, 0x11, 0x1E, 0x14, 0x12, 0x11}},
+    {'S', {0x0F, 0x10, 0x10, 0x0E, 0x01, 0x01, 0x1E}},
+    {'T', {0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04}},
+    {'U', {0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E}},
+    {'V', {0x11, 0x11, 0x11, 0x11, 0x11, 0x0A, 0x04}},
+    {'W', {0x11, 0x11, 0x11, 0x15, 0x15, 0x1B, 0x11}},
+    {'X', {0x11, 0x11, 0x0A, 0x04, 0x0A, 0x11, 0x11}},
+    {'Y', {0x11, 0x11, 0x0A, 0x04, 0x04, 0x04, 0x04}},
+    {'Z', {0x1F, 0x01, 0x02, 0x04, 0x08, 0x10, 0x1F}},
+    {'0', {0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E}},
+    {'1', {0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E}},
+    {'2', {0x0E, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1F}},
+    {'3', {0x1E, 0x01, 0x01, 0x0E, 0x01, 0x01, 0x1E}},
+    {'4', {0x02, 0x06, 0x0A, 0x12, 0x1F, 0x02, 0x02}},
+    {'5', {0x1F, 0x10, 0x1E, 0x01, 0x01, 0x11, 0x0E}},
+    {'6', {0x06, 0x08, 0x10, 0x1E, 0x11, 0x11, 0x0E}},
+    {'7', {0x1F, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08}},
+    {'8', {0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E}},
+    {'9', {0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C}},
+    {'-', {0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00}},
+    {'+', {0x00, 0x04, 0x04, 0x1F, 0x04, 0x04, 0x00}},
+    {'!', {0x04, 0x04, 0x04, 0x04, 0x04, 0x00, 0x04}},
+    {'?', {0x0E, 0x11, 0x01, 0x02, 0x04, 0x00, 0x04}},
+    {'/', {0x01, 0x02, 0x02, 0x04, 0x08, 0x08, 0x10}},
+};
+#define FONT5_COUNT ((int)(sizeof(font5) / sizeof(font5[0])))
 
-/* UTF-8 -> Unicode code point */
-static int utf8Codepoint(const char **pp) {
-    const unsigned char *p = (const unsigned char *)*pp;
-    unsigned char c0 = p[0];
-    if (c0 < 0x80) { (*pp)++; return (int)c0; }
-    if ((c0 & 0xE0) == 0xC0 && p[1]) {
-        int cp = ((c0 & 0x1F) << 6) | (p[1] & 0x3F);
-        *pp += 2;
-        return cp;
-    }
-    if ((c0 & 0xF0) == 0xE0 && p[1] && p[2]) {
-        int cp = ((c0 & 0x0F) << 12) | ((p[1] & 0x3F) << 6) | (p[2] & 0x3F);
-        *pp += 3;
-        return cp;
-    }
-    if ((c0 & 0xF8) == 0xF0 && p[1] && p[2] && p[3]) {
-        *pp += 4;
-        return '?';
-    }
-    (*pp)++;
-    return (int)c0;
-}
-
-static const unsigned short *glyphFor(int ch) {
-    /* ASCII kucuk -> buyuk */
-    if (ch >= 'a' && ch <= 'z') ch = ch - 32;
-    /* Turkce kucuk -> buyuk (font buyuk harf seti) */
-    if (ch == 0x00E7) ch = 0x00C7; /* ç -> Ç */
-    if (ch == 0x011F) ch = 0x011E; /* ğ -> Ğ */
-    if (ch == 0x0131) ch = 0x0049; /* ı -> I */
-    if (ch == 0x00F6) ch = 0x00D6; /* ö -> Ö */
-    if (ch == 0x015F) ch = 0x015E; /* ş -> Ş */
-    if (ch == 0x00FC) ch = 0x00DC; /* ü -> Ü */
-    for (int i = 0; i < FONTTR_COUNT; i++)
-        if (fontTR[i].c == (unsigned short)ch) return fontTR[i].r;
+static const unsigned char *glyphFor(char ch) {
+    if (ch >= 'a' && ch <= 'z') ch = (char)(ch - 32);   /* kucuk harf -> buyuk harf */
+    for (int i = 0; i < FONT5_COUNT; i++) if (font5[i].c == ch) return font5[i].r;
     return NULL;
 }
 
@@ -178,16 +184,16 @@ static void emitR(V2 *v, int *n, int x, int y, int w, int h, unsigned c) {
     if (v) { v2set(&v[2 * (*n)], x, y, c); v2set(&v[2 * (*n) + 1], x + w, y + h, c); }
     (*n)++;
 }
-static void glyphEmit(V2 *v, int *n, const unsigned short *r, int x, int y, int w, int h, unsigned c) {
-    for (int row = 0; row < FONT_H; row++) {
-        int y0 = y + row * h / FONT_H, y1 = y + (row + 1) * h / FONT_H;
+static void glyphEmit(V2 *v, int *n, const unsigned char *r, int x, int y, int w, int h, unsigned c) {
+    for (int row = 0; row < 7; row++) {
+        int y0 = y + row * h / 7, y1 = y + (row + 1) * h / 7;
         if (y1 <= y0) y1 = y0 + 1;
         int col = 0;
-        while (col < FONT_W) {
-            if (r[row] & (1 << (FONT_W - 1 - col))) {
+        while (col < 5) {
+            if (r[row] & (0x10 >> col)) {
                 int c0 = col;
-                while (col < FONT_W && (r[row] & (1 << (FONT_W - 1 - col)))) col++;
-                int x0 = x + c0 * w / FONT_W, x1 = x + col * w / FONT_W;
+                while (col < 5 && (r[row] & (0x10 >> col))) col++;
+                int x0 = x + c0 * w / 5, x1 = x + col * w / 5;
                 if (x1 <= x0) x1 = x0 + 1;
                 emitR(v, n, x0, y0, x1 - x0, y1 - y0, c);
             } else col++;
@@ -206,8 +212,8 @@ static void text(int x, int y, int w, int h, int t, const char *s, unsigned c) {
             if (total == 0) return;
             v = (V2 *)sceGuGetMemory(2 * total * sizeof(V2));
         }
-        for (const char *p = s; *p; ) {
-            int ch = utf8Codepoint(&p);
+        for (const char *p = s; *p; p++) {
+            char ch = *p;
             if (ch == ' ') { cx += w; continue; }
             if (ch == '.') {
                 emitR(v, &n, cx + 1, y + h - t + 1, t, t, sh); emitR(v, &n, cx, y + h - t, t, t, c);
@@ -218,7 +224,7 @@ static void text(int x, int y, int w, int h, int t, const char *s, unsigned c) {
                 emitR(v, &n, cx + 1, y + 2 * h / 3 - t + 1, t, t, sh); emitR(v, &n, cx, y + 2 * h / 3 - t, t, t, c);
                 cx += t + 3; continue;
             }
-            const unsigned short *g = glyphFor(ch);
+            const unsigned char *g = glyphFor(ch);
             if (g) {
                 glyphEmit(v, &n, g, cx + 1, y + 1, w, h, sh);
                 glyphEmit(v, &n, g, cx, y, w, h, c);
@@ -231,10 +237,9 @@ static void text(int x, int y, int w, int h, int t, const char *s, unsigned c) {
 }
 static int textWidth(const char *s, int w, int t) {
     int x = 0;
-    for (const char *p = s; *p; ) {
-        int ch = utf8Codepoint(&p);
-        if (ch == ' ' || ch == '/') x += w;
-        else if (ch == '.' || ch == ':') x += t + 3;
+    for (; *s; s++) {
+        if (*s == ' ' || *s == '/') x += w;
+        else if (*s == '.' || *s == ':') x += t + 3;
         else x += w + t + 3;
     }
     return x;
@@ -245,7 +250,6 @@ typedef struct { float u, v; unsigned c; float x, y, z; } Vtx;
 #define VF3 (GU_TEXTURE_32BITF | GU_COLOR_8888 | GU_VERTEX_32BITF | GU_TRANSFORM_3D)
 #include "char_models.h"
 #include "kart_models.h"
-#include "item_models.h"
 typedef struct { float x, y, z; } P3;
 
 static Vtx __attribute__((aligned(16))) mesh[MAXV];
@@ -304,16 +308,16 @@ static const unsigned kBody[NK] = {
     RGB(225, 35, 35),   /* Mario */
     RGB(35, 165, 70),   /* Luigi */
     RGB(35, 180, 70),   /* Yoshi */
-    RGB(255, 120, 180), /* Peach */
-    RGB(230, 50, 50),   /* Toad */
-    RGB(50, 160, 40)    /* Bowser */
+    RGB(245, 205, 25),
+    RGB(80, 110, 230),
+    RGB(245, 135, 25)
 };
-static const unsigned kTrim[NK] = { RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 220, 80), RGB(255, 255, 255), RGB(255, 200, 40) };
-static const char *charNames[NK] = { "MARIO", "LUIGI", "YOSHI", "PEACH", "TOAD", "BOWSER" };
+static const unsigned kTrim[NK] = { RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255), RGB(40, 40, 40), RGB(255, 255, 255), RGB(40, 40, 40) };
+static const char *charNames[NK] = { "MARIO", "LUIGI", "YOSHI", "MARIO", "LUIGI", "YOSHI" };
 /* karakter ozellikleri: hiz / ivme / direksiyon carpani */
-static const float cSpd[NK] = { 1.00f, 1.05f, 0.97f, 0.98f, 1.08f, 0.92f };
-static const float cAcc[NK] = { 1.00f, 0.92f, 1.12f, 1.05f, 1.15f, 0.90f };
-static const float cTrn[NK] = { 1.00f, 0.98f, 1.00f, 1.10f, 1.12f, 0.95f };
+static const float cSpd[NK] = { 1.00f, 1.05f, 0.97f, 0.97f, 1.06f, 0.94f };
+static const float cAcc[NK] = { 1.00f, 0.92f, 1.12f, 1.00f, 0.88f, 1.15f };
+static const float cTrn[NK] = { 1.00f, 0.98f, 1.00f, 1.12f, 0.92f, 1.08f };
 
 static int trackSel = 0, charSel = 0;
 static int kChar[NK];            /* kart slotu -> karakter (0 = oyuncu) */
@@ -1283,18 +1287,6 @@ static int loadTextureBank(void) {
     texYoshiModel[1]=loadPngTexture(ASSET_ROOT "assets/textures/yoshi_model_belly.png");
     texLuigiModel[0]=loadPngTexture(ASSET_ROOT "assets/textures/luigi_model_body.png");
     texLuigiModel[1]=loadPngTexture(ASSET_ROOT "assets/textures/luigi_model_face.png");
-    /* Mario Party N64/2 karakter modelleri texturelari */
-    texMarioBody  = loadPngTexture(ASSET_ROOT "assets/textures/mario_model.png");
-    texLuigiBody  = loadPngTexture(ASSET_ROOT "assets/textures/luigi_model.png");
-    texYoshiBody  = loadPngTexture(ASSET_ROOT "assets/textures/yoshi_model.png");
-    texPeachModel = loadPngTexture(ASSET_ROOT "assets/textures/peach_model.png");
-    texToadModel  = loadPngTexture(ASSET_ROOT "assets/textures/toad_model.png");
-    texBowserModel= loadPngTexture(ASSET_ROOT "assets/textures/bowser_model.png");
-    texItemShield = loadPngTexture(ASSET_ROOT "assets/textures/item_shield.png");
-    texItemStar   = loadPngTexture(ASSET_ROOT "assets/textures/item_star.png");
-    texItemBanana = loadPngTexture(ASSET_ROOT "assets/textures/item_banana.png");
-    texItemShell  = loadPngTexture(ASSET_ROOT "assets/textures/item_shell.png");
-    texItemQBlock = loadPngTexture(ASSET_ROOT "assets/textures/item_qblock.png");
 
     /* Kullanici tarafindan verilen Mario Kart 64 Pipe Frame 64 texturelari. */
     texKart[0] = loadPngTexture(ASSET_ROOT "assets/textures/frame_mario.png");
@@ -1338,31 +1330,20 @@ static void drawAtlasIcon(int cell,float x,float y,float size,unsigned c) {
     AtlasUV a=atlasUV[cell]; drawTexRect(texAtlas,x,y,size,size,(float)a.x,(float)a.y,(float)(a.x+a.w),(float)(a.y+a.h),c);
 }
 
-static int charModelId(int cid) { return (cid < 0) ? 0 : (cid % NK); }
+static int charModelId(int cid) { return (cid < 0) ? 0 : (cid % 3); }
 
 static const CharModelPart *charModelPartsFor(int cid, int *count) {
     int m = charModelId(cid);
     if (m == 0) { *count = MARIO_MODEL_PARTS; return marioModelParts; }
     if (m == 1) { *count = LUIGI_MODEL_PARTS; return luigiModelParts; }
-    if (m == 2) { *count = YOSHI_MODEL_PARTS; return yoshiModelParts; }
-    if (m == 3) { *count = PEACH_MODEL_PARTS; return peachModelParts; }
-    if (m == 4) { *count = TOAD_MODEL_PARTS; return toadModelParts; }
-    *count = BOWSER_MODEL_PARTS; return bowserModelParts;
+    *count = YOSHI_MODEL_PARTS; return yoshiModelParts;
 }
-
-static PspTexture *texPeachModel = NULL, *texToadModel = NULL, *texBowserModel = NULL;
-static PspTexture *texMarioBody = NULL, *texLuigiBody = NULL, *texYoshiBody = NULL;
-static PspTexture *texItemShield = NULL, *texItemStar = NULL, *texItemBanana = NULL, *texItemShell = NULL, *texItemQBlock = NULL;
 
 static const PspTexture *charModelTexFor(int cid, int part) {
     int m = charModelId(cid);
-    /* Tum karakterler tek parca model + tek texture (N64 rip) */
-    if (m == 0) return texMarioBody ? texMarioBody : (part >= 0 && part < 5 ? texMarioModel[part] : NULL);
-    if (m == 1) return texLuigiBody ? texLuigiBody : (part >= 0 && part < 2 ? texLuigiModel[part] : NULL);
-    if (m == 2) return texYoshiBody ? texYoshiBody : (part >= 0 && part < 2 ? texYoshiModel[part] : NULL);
-    if (m == 3) return texPeachModel;
-    if (m == 4) return texToadModel;
-    if (m == 5) return texBowserModel;
+    if (m == 0 && part >= 0 && part < 5) return texMarioModel[part];
+    if (m == 1 && part >= 0 && part < 2) return texLuigiModel[part];
+    if (m == 2 && part >= 0 && part < 2) return texYoshiModel[part];
     return NULL;
 }
 
@@ -1371,28 +1352,13 @@ static void drawCharacterModel(int who) {
     int count = 0;
     const CharModelPart *parts = charModelPartsFor(kChar[who], &count);
     int mid = charModelId(kChar[who]);
-    /* Olcek: tum karakterler Mario Party N64/2 3D modelleri */
-    float scale = 0.80f;
-    if (mid == 0) scale = 0.82f;      /* Mario */
-    else if (mid == 1) scale = 0.82f; /* Luigi */
-    else if (mid == 2) scale = 0.78f; /* Yoshi */
-    else if (mid == 3) scale = 0.88f; /* Peach */
-    else if (mid == 4) scale = 0.95f; /* Toad */
-    else if (mid == 5) scale = 0.70f; /* Bowser */
+    float scale = (mid == 0) ? 0.63f : ((mid == 1) ? 0.70f : 0.66f);
     ScePspFVector3 sc = { scale, scale, scale };
     sceGumScale(&sc);
-    /* Tum modeller ayakta; kameraya dogru yonlendir */
-    {
-        ScePspFVector3 tr = { 0.0f, 0.12f, 0.0f };
+    if (mid != 1) {
+        ScePspFVector3 tr = { 0.0f, 0.0f, 0.0f };
         sceGumTranslate(&tr);
-        sceGumRotateY(PI);  /* yuz arkadan (oyuncu kamerasi) */
-    }
-    /* Basit animasyon: hizla orantili hafif yurume salinimi */
-    {
-        Kart *k = &K[who];
-        float walk = sinf(k->bobA * 1.8f) * 0.04f * clampf(k->spd / VMAX, 0, 1);
-        sceGumRotateZ(walk);
-        sceGumRotateX(sinf(k->bobA * 0.9f) * 0.03f * clampf(k->spd / VMAX, 0, 1));
+        sceGumRotateY(PI * 0.5f);
     }
     sceGuEnable(GU_TEXTURE_2D);
     sceGuTexMode(GU_PSM_8888, 0, 0, 0);
@@ -1456,33 +1422,6 @@ static void drawKartModel(int who) {
     sceGuDisable(GU_TEXTURE_2D);
 }
 
-
-/* 3D item modelleri (Shield, Star, Banana, Shell, Question Block) */
-static void drawItemModel3D(const ItemModel *m, const PspTexture *tx, float scale) {
-    if (!m || m->count <= 0) return;
-    ScePspFVector3 sc = { scale, scale, scale };
-    sceGumScale(&sc);
-    sceGuEnable(GU_TEXTURE_2D);
-    sceGuTexMode(GU_PSM_8888, 0, 0, 0);
-    sceGuTexFunc(GU_TFX_MODULATE, GU_TCC_RGBA);
-    sceGuTexFilter(GU_LINEAR, GU_LINEAR);
-    sceGuTexWrap(GU_REPEAT, GU_REPEAT);
-    if (tx && tx->ready) {
-        Vtx *tmp = (Vtx *)sceGuGetMemory((int)(m->count * sizeof(Vtx)));
-        for (int q = 0; q < m->count; q++) {
-            tmp[q] = m->v[q];
-            tmp[q].u *= (float)tx->w;
-            tmp[q].v *= (float)tx->h;
-        }
-        sceGuTexImage(0, tx->w, tx->h, tx->w, tx->data);
-        sceGuTexFlush();
-        sceGumDrawArray(GU_TRIANGLES, VF3, m->count, 0, tmp);
-    } else {
-        sceGumDrawArray(GU_TRIANGLES, VF3, m->count, 0, m->v);
-    }
-    sceGuDisable(GU_TEXTURE_2D);
-}
-
 static void drawFace3D(int who, float tAnimNow) {
     /* Oyuncu kamerası arkadan baktığı için yüzü sürücünün arka tarafına
        yerleştiriyoruz. Böylece Mario/Luigi/Yoshi yarışta gerçekten görünür. */
@@ -1541,7 +1480,7 @@ static SaveData saveData;
 static void saveDefaults(void) {
     memset(&saveData, 0, sizeof(saveData));
     saveData.magic = SAVE_MAGIC;
-    saveData.unlockedChars = 0x0000003Fu; /* 6 karakter: Mario Luigi Yoshi Peach Toad Bowser */
+    saveData.unlockedChars = 0x00000007u; /* ilk 3 karakter */
     saveData.unlockedTracks = 0x00000003u; /* ilk 2 pist */
     saveData.unlockedCups = 0x00000001u; /* ilk kupa */
     saveData.careerLevel = 0;
@@ -1625,7 +1564,7 @@ static void loadSave(void) {
     }
     if (saveData.magic != SAVE_MAGIC) saveDefaults();
     saveData.magic = SAVE_MAGIC;
-    if (saveData.unlockedChars == 0) saveData.unlockedChars = 0x0000003Fu;
+    if (saveData.unlockedChars == 0) saveData.unlockedChars = 0x00000007u;
     if (saveData.unlockedTracks == 0) saveData.unlockedTracks = 0x00000003u;
     if (saveData.unlockedCups == 0) saveData.unlockedCups = 0x00000001u;
     if (saveData.careerLevel < 0) saveData.careerLevel = 0;
@@ -1754,15 +1693,15 @@ static int itemCntG = 0;
 
 static const char *itemName(int item) {
     switch (item) {
-    case ITEM_MUSH:       return L("MANTAR", "MUSHROOM");
-    case ITEM_GREENSHELL: return L("YESIL KABUK", "GREEN SHELL");
-    case ITEM_REDSHELL:   return L("KIRMIZI KABUK", "RED SHELL");
-    case ITEM_BANANA:     return L("MUZ KABUGU", "BANANA");
-    case ITEM_LIGHT:      return L("YILDIRIM", "LIGHTNING");
-    case ITEM_SHIELD:     return L("KALKAN", "SHIELD");
-    case ITEM_STAR:       return L("YILDIZ", "STAR");
+    case ITEM_MUSH:   return "MUSH";
+    case ITEM_GREENSHELL: return "GREEN";
+    case ITEM_REDSHELL:   return "RED";
+    case ITEM_BANANA: return "BANANA";
+    case ITEM_LIGHT:  return "LIGHT";
+    case ITEM_SHIELD: return "SHIELD";
+    case ITEM_STAR:   return "STAR";
     }
-    return L("YOK", "NONE");
+    return "NONE";
 }
 
 static unsigned itemColor(int item) {
@@ -2330,7 +2269,6 @@ static void update(SceCtrlData *pad) {
             else { gameMode=menuSel; state=STATE_DIFF; }
         }
         if (pressed & PSP_CTRL_TRIANGLE) { skyPhase=(skyPhase+1)%3; playMenuSelect(); }
-        if (pressed & PSP_CTRL_SELECT) { gLang = 1 - gLang; playMenuSelect(); }
         return;
     }
     if (state == STATE_STATS) {
@@ -2665,16 +2603,8 @@ static void render3D(void) {
                 ScePspFVector3 t;
                 t.x = cosf(a) * 2.2f; t.y = 1.1f + 0.55f * sinf(a * 1.7f); t.z = sinf(a) * 2.2f;
                 sceGumTranslate(&t);
-                drawItemModel3D(&item_star_model, texItemStar, 0.55f);
+                sceGumDrawArray(GU_TRIANGLES, VF3, coneCount, 0, &mesh[coneStart]);
             }
-        }
-        if (k->shield) {
-            /* Knight Shield 3D floating behind kart */
-            ScePspFVector3 t;
-            t.x = -0.2f; t.y = 1.0f; t.z = 0.0f;
-            sceGumTranslate(&t);
-            sceGumRotateY(tAnim * 1.5f);
-            drawItemModel3D(&item_shield_model, texItemShield, 0.7f);
         }
     }
     /* ghost (en iyi time trial turu, 30 Hz kayit, aralari interpolasyon) */
@@ -2695,23 +2625,23 @@ static void render3D(void) {
         Thing *t = &things[i];
         if (!t->active) continue;
         if (t->type == TH_ITEM) {
-            /* Question Block 3D */
             modelAt(t->x, 1.5f + 0.2f * sinf(tAnim * 3.0f + i), t->z, tAnim * 2.0f);
-            drawItemModel3D(&item_qblock_model, texItemQBlock, 1.0f);
+            sceGumDrawArray(GU_TRIANGLES, VF3, boxCount, 0, &mesh[boxStart]);
         } else if (t->type == TH_CONE) {
             modelAt(t->x, 0, t->z, 0);
             sceGumDrawArray(GU_TRIANGLES, VF3, coneCount, 0, &mesh[coneStart]);
         } else if (t->type == TH_BANANA) {
-            /* Banana Peel 3D */
             modelAt(t->x, 0.35f, t->z, tAnim * 2.5f);
-            drawItemModel3D(&item_banana_model, texItemBanana, 1.0f);
+            sceGumDrawArray(GU_TRIANGLES, VF3, banCount, 0, &mesh[banStart]);
         }
     }
 
     for (int owner = 0; owner < NK; owner++) if (shellShots[owner].active) {
-        /* Koopa Shell 3D */
         modelAt(shellShots[owner].x, 1.0f + 0.18f * sinf(tAnim * 16.0f + owner), shellShots[owner].z, tAnim * 8.0f);
-        drawItemModel3D(&item_shell_model, texItemShell, shellShots[owner].type == SHELL_RED ? 1.1f : 1.0f);
+        if (shellShots[owner].type == SHELL_RED)
+            sceGumDrawArray(GU_TRIANGLES, VF3, shellRCount, 0, &mesh[shellRStart]);
+        else
+            sceGumDrawArray(GU_TRIANGLES, VF3, shellGCount, 0, &mesh[shellGStart]);
     }
     /* Parcaciklari 3D sahnede canli sekilde goster */
     for (int i = 0; i < MAXFX; i++) if (fx[i].active) {
@@ -2747,7 +2677,7 @@ static void drawHUD(void) {
 
     if (state == STATE_STATS) {
         rect(0,0,W,H,RGBA(0,0,0,180));
-        text(W/2-textWidth(L("İSTATİSTİK","STATISTICS"),16,5)/2,10,16,28,5,L("İSTATİSTİK","STATISTICS"),RGB(255,220,50));
+        text(W/2-textWidth("ISTATISTIK",16,5)/2,10,16,28,5,"ISTATISTIK",RGB(255,220,50));
         snprintf(buf,sizeof(buf),"WINS %d",saveData.totalWins); text(42,58,10,16,3,buf,RGB(255,255,255));
         snprintf(buf,sizeof(buf),"RACES %d",saveData.totalRaces); text(42,82,10,16,3,buf,RGB(200,220,240));
         snprintf(buf,sizeof(buf),"ITEMS %d",saveData.totalItems); text(42,106,10,16,3,buf,RGB(200,220,240));
@@ -2758,12 +2688,12 @@ static void drawHUD(void) {
         snprintf(buf,sizeof(buf),"TRACK %d/%d",countUnlocked(saveData.unlockedTracks,NTRACKS),NTRACKS); text(250,106,10,16,3,buf,RGB(200,220,240));
         snprintf(buf,sizeof(buf),"CUP %d/%d",countUnlocked(saveData.unlockedCups,NCUPS),NCUPS); text(250,130,10,16,3,buf,RGB(200,220,240));
         snprintf(buf,sizeof(buf),"G %d  S %d  B %d",saveData.cupsGold,saveData.cupsSilver,saveData.cupsBronze); text(190,174,10,16,3,buf,RGB(255,220,100));
-        text(W/2-textWidth(L("O/START: GERİ","O/START: BACK"),9,3)/2,236,9,14,3,L("O/START: GERİ","O/START: BACK"),RGB(180,210,235));
+        text(W/2-textWidth("O/START: GERI",9,3)/2,236,9,14,3,"O/START: GERI",RGB(180,210,235));
         return;
     }
     if (state == STATE_DIFF) {
         rect(0,0,W,H,RGBA(0,0,0,170));
-        text(W/2-textWidth(L("ZORLUK","DIFFICULTY"),18,6)/2,20,18,30,6,L("ZORLUK","DIFFICULTY"),RGB(255,220,50));
+        text(W/2-textWidth("ZORLUK",18,6)/2,20,18,30,6,"ZORLUK",RGB(255,220,50));
         for(int i=0;i<4;i++){
             int bx=30+i*108; if(i==diffSel) rect(bx-4,92,100,56,RGB(255,220,50));
             rect(bx,96,92,48,RGBA(20,50,100,220));
@@ -2771,26 +2701,26 @@ static void drawHUD(void) {
         }
         snprintf(buf,sizeof(buf),"SKY %s",skyPhase==0?"DAY":(skyPhase==1?"SUNSET":"NIGHT"));
         text(W/2-textWidth(buf,10,3)/2,176,10,16,3,buf,RGB(255,230,120));
-        text(W/2-textWidth(L("SOL SAĞ SEÇ   X DEVAM   O GERİ   Üçgen SKY","LEFT RIGHT SELECT  X OK  O BACK  TRI SKY"),7,2)/2,240,7,12,2,L("SOL SAĞ SEÇ   X DEVAM   O GERİ   Üçgen SKY","LEFT RIGHT SELECT  X OK  O BACK  TRI SKY"),RGB(205,220,235));
+        text(W/2-textWidth("SOL SAG SEC   X DEVAM   O GERI   Ucgen SKY",7,2)/2,240,7,12,2,"SOL SAG SEC   X DEVAM   O GERI   Ucgen SKY",RGB(205,220,235));
         return;
     }
     if (state == STATE_CUPSELECT) {
         rect(0,0,W,H,RGBA(0,0,0,175));
-        text(W/2-textWidth(L("KUPA SEÇ","SELECT CUP"),16,5)/2,14,16,28,5,L("KUPA SEÇ","SELECT CUP"),RGB(255,220,50));
+        text(W/2-textWidth("KUPA SEC",16,5)/2,14,16,28,5,"KUPA SEC",RGB(255,220,50));
         for(int i=0;i<NCUPS;i++){
             int bx=30+i*145; int locked=(gameMode==GAME_CAREER && !cupUnlocked(i));
             if(i==cupSel) rect(bx-4,82,132,70,RGB(255,220,50));
             rect(bx,86,124,62,locked?RGBA(35,35,45,230):RGBA(25,70,120,230));
-            text(bx+10,98,8,14,2,locked?L("KİLİTLİ","LOCKED"):cupNames[i],locked?RGB(255,90,90):RGB(255,255,255));
+            text(bx+10,98,8,14,2,locked?"LOCKED":cupNames[i],locked?RGB(255,90,90):RGB(255,255,255));
             for(int r=0;r<4;r++){ int tr=cupTracks[i][r]; rect(bx+12+r*25,124,20,12,kBody[(tr+1)%NK]); }
         }
-        text(W/2-textWidth(L("SOL SAĞ   X BAŞLA   O GERİ","LEFT RIGHT  X START  O BACK"),8,2)/2,236,8,14,2,L("SOL SAĞ   X BAŞLA   O GERİ","LEFT RIGHT  X START  O BACK"),RGB(205,220,235));
+        text(W/2-textWidth("SOL SAG   X BASLA   O GERI",8,2)/2,236,8,14,2,"SOL SAG   X BASLA   O GERI",RGB(205,220,235));
         return;
     }
     /* Karakter secimi */
     if (state == STATE_CHAR) {
         rect(0, 0, W, H, RGBA(0, 0, 0, 150));
-        text(W / 2 - textWidth(L("KARAKTER SEÇ","SELECT CHARACTER"), 14, 4) / 2, 12, 14, 24, 4, L("KARAKTER SEÇ","SELECT CHARACTER"), RGB(255, 220, 50));
+        text(W / 2 - textWidth("KARAKTER SEC", 14, 4) / 2, 12, 14, 24, 4, "KARAKTER SEC", RGB(255, 220, 50));
         for (int i = 0; i < NK; i++) {
             int bx = 30 + i * 72, by = 52;
             if (i == charSel) rect(bx - 4, by - 4, 64, 72, RGB(255, 220, 50));
@@ -2807,7 +2737,7 @@ static void drawHUD(void) {
             rect(bx + 6, by + 46, 44, 4, scol(kBody[i], 0.6f));
         }
         if(charUnlocked(charSel)) text(W / 2 - textWidth(charNames[charSel], 18, 5) / 2, 132, 18, 30, 5, charNames[charSel], RGB(255, 255, 255));
-        else text(W / 2 - textWidth(L("KİLİTLİ","LOCKED"), 18, 5) / 2, 132, 18, 30, 5, L("KİLİTLİ","LOCKED"), RGB(255, 90, 90));
+        else text(W / 2 - textWidth("LOCKED", 18, 5) / 2, 132, 18, 30, 5, "LOCKED", RGB(255, 90, 90));
         {
             static const char *lbl[3] = { "SPEED", "ACCEL", "TURN" };
             float vals[3] = { cSpd[charSel], cAcc[charSel], cTrn[charSel] };
@@ -2818,14 +2748,14 @@ static void drawHUD(void) {
                 rect(200, by2 + 2, 160.0f * clampf((vals[j] - 0.82f) / 0.34f, 0.05f, 1.0f), 10, RGB(120, 240, 255));
             }
         }
-        text(W / 2 - textWidth(L("SOL SAĞ: SEÇ   X: TAMAM   O: GERİ","L/R: SELECT  X: OK  O: BACK"), 7, 2) / 2, 250, 7, 12, 2, L("SOL SAĞ: SEÇ   X: TAMAM   O: GERİ","L/R: SELECT  X: OK  O: BACK"), RGB(205, 220, 235));
+        text(W / 2 - textWidth("SOL SAG: SEC   X: TAMAM   O: GERI", 7, 2) / 2, 250, 7, 12, 2, "SOL SAG: SEC   X: TAMAM   O: GERI", RGB(205, 220, 235));
         return;
     }
     /* Pist secimi (arkada pist onizlemesi) */
     if (state == STATE_TRACK) {
         rect(0, 0, W, 66, RGBA(0, 0, 0, 170));
         rect(0, H - 76, W, 76, RGBA(0, 0, 0, 170));
-        text(W / 2 - textWidth(L("PİST SEÇ","SELECT TRACK"), 14, 4) / 2, 8, 14, 24, 4, L("PİST SEÇ","SELECT TRACK"), RGB(255, 220, 50));
+        text(W / 2 - textWidth("PIST SEC", 14, 4) / 2, 8, 14, 24, 4, "PIST SEC", RGB(255, 220, 50));
         snprintf(buf, sizeof(buf), "%d/%d  %s", trackSel + 1, NTRACKS, themes[trackSel].name);
         text(W / 2 - textWidth(buf, 10, 3) / 2, 40, 10, 16, 3, buf, trackUnlocked(trackSel) || !careerActive ? RGB(255,255,255) : RGB(255,90,90));
         snprintf(buf, sizeof(buf), "%s  %s", diffNames[diffSel], mirrorMode?"MIRROR":"NORMAL");
@@ -2838,9 +2768,9 @@ static void drawHUD(void) {
             } else snprintf(buf, sizeof(buf), "BEST --");
             text(W / 2 - textWidth(buf, 10, 3) / 2, H - 70, 10, 16, 3, buf, RGB(120, 240, 255));
             if (gameMode == GAME_TIME_TRIAL && ghostBestCount > 0)
-                text(W / 2 - textWidth(L("GHOST VAR","GHOST READY"), 8, 2) / 2, H - 48, 8, 14, 2, L("GHOST VAR","GHOST READY"), RGB(255, 230, 120));
+                text(W / 2 - textWidth("GHOST VAR", 8, 2) / 2, H - 48, 8, 14, 2, "GHOST VAR", RGB(255, 230, 120));
         }
-        text(W / 2 - textWidth(L("SOL SAĞ: PİST   X: BAŞLA   O: GERİ","L/R: TRACK  X: START  O: BACK"), 7, 2) / 2, H - 22, 7, 12, 2, L("SOL SAĞ: PİST   X: BAŞLA   O: GERİ","L/R: TRACK  X: START  O: BACK"), RGB(205, 220, 235));
+        text(W / 2 - textWidth("SOL SAG: PIST   X: BASLA   O: GERI", 7, 2) / 2, H - 22, 7, 12, 2, "SOL SAG: PIST   X: BASLA   O: GERI", RGB(205, 220, 235));
         return;
     }
     /* Ana menu: tek kisilik yaris, diger araclar BOT */
@@ -2855,12 +2785,7 @@ static void drawHUD(void) {
             text(W / 2 - textWidth(abuf, 5, 1) / 2, 70, 5, 9, 1, abuf, RGB(170, 220, 240));
         }
         {
-            static const char *names[5];
-            names[0]=L("TEK KİŞİLİK","SINGLE RACE");
-            names[1]="TIME TRIAL";
-            names[2]="CHAMPIONSHIP";
-            names[3]="CAREER";
-            names[4]=L("İSTATİSTİK","STATISTICS");
+            static const char *names[5] = { "TEK KISILIK", "TIME TRIAL", "CHAMPIONSHIP", "CAREER", "ISTATISTIK" };
             for (int i = 0; i < 5; i++) {
                 int by = 72 + i * 30;
                 int sel = (menuSel == i);
@@ -2870,15 +2795,11 @@ static void drawHUD(void) {
                      sel ? RGB(255, 255, 255) : RGB(170, 185, 205));
             }
         }
-        text(W / 2 - textWidth(L("X: DEVAM","X: CONTINUE"), 11, 3) / 2, 228, 11, 18, 3, L("X: DEVAM","X: CONTINUE"), RGB(120, 240, 255));
-        {
-            const char *langLbl = gLang == LANG_EN ? "SELECT: LANGUAGE EN" : "SELECT: DİL TR";
-            text(W / 2 - textWidth(langLbl, 7, 2) / 2, 210, 7, 12, 2, langLbl, RGB(180, 220, 255));
-        }
+        text(W / 2 - textWidth("X: DEVAM", 11, 3) / 2, 228, 11, 18, 3, "X: DEVAM", RGB(120, 240, 255));
         if (menuSel == GAME_TIME_TRIAL) text(W/2-textWidth("GHOST TIME TRIAL",9,3)/2,246,9,14,3,"GHOST TIME TRIAL",RGB(255,230,120));
-        else if (menuSel == GAME_CHAMPIONSHIP) text(W/2-textWidth(L("4 YARIŞ PUAN KUPA","4 RACES POINT CUP"),9,3)/2,246,9,14,3,L("4 YARIŞ PUAN KUPA","4 RACES POINT CUP"),RGB(255,230,120));
-        else if (menuSel == GAME_CAREER) text(W/2-textWidth(L("AÇILABİLİR KARAKTER PİST KUPA","UNLOCK CHARS TRACKS CUPS"),8,2)/2,246,8,14,2,L("AÇILABİLİR KARAKTER PİST KUPA","UNLOCK CHARS TRACKS CUPS"),RGB(255,230,120));
-        else text(W/2-textWidth(L("PSP KART YARIŞI","PSP KART RACING"),9,3)/2,246,9,14,3,L("PSP KART YARIŞI","PSP KART RACING"),RGB(255,230,120));
+        else if (menuSel == GAME_CHAMPIONSHIP) text(W/2-textWidth("4 YARIS PUAN KUPA",9,3)/2,246,9,14,3,"4 YARIS PUAN KUPA",RGB(255,230,120));
+        else if (menuSel == GAME_CAREER) text(W/2-textWidth("ACILABILIR KARAKTER PIST KUPA",8,2)/2,246,8,14,2,"ACILABILIR KARAKTER PIST KUPA",RGB(255,230,120));
+        else text(W/2-textWidth("PSP KART YARISI",9,3)/2,246,9,14,3,"PSP KART YARISI",RGB(255,230,120));
         return;
     }
     if (gameMode == GAME_RACE) {
@@ -2997,21 +2918,21 @@ static void drawHUD(void) {
     /* duraklatma ekrani */
     if (state == STATE_PAUSE) {
         rect(0, 72, W, 142, RGBA(0, 0, 0, 175));
-        text(W / 2 - textWidth(L("PAUSE","PAUSE"), 30, 8) / 2, 84, 30, 50, 8, L("PAUSE","PAUSE"), RGB(255, 230, 70));
-        text(W / 2 - textWidth(L("START:DEVAM","START:RESUME"), 10, 3) / 2, 148, 10, 16, 3, L("START:DEVAM","START:RESUME"), RGB(255, 255, 255));
-        text(W / 2 - textWidth(L("SELECT:YENİ","SELECT:RESTART"), 10, 3) / 2, 172, 10, 16, 3, L("SELECT:YENİ","SELECT:RESTART"), RGB(180, 220, 255));
-        text(W / 2 - textWidth(aMusicOn ? L("T:MÜZİK AÇIK","T:MUSIC ON") : L("T:MÜZİK KAPALI","T:MUSIC OFF"), 10, 3) / 2, 194, 10, 16, 3, aMusicOn ? L("T:MÜZİK AÇIK","T:MUSIC ON") : L("T:MÜZİK KAPALI","T:MUSIC OFF"), RGB(255, 230, 120));
+        text(W / 2 - textWidth("PAUSE", 30, 8) / 2, 84, 30, 50, 8, "PAUSE", RGB(255, 230, 70));
+        text(W / 2 - textWidth("START:DEVAM", 10, 3) / 2, 148, 10, 16, 3, "START:DEVAM", RGB(255, 255, 255));
+        text(W / 2 - textWidth("SELECT:YENI", 10, 3) / 2, 172, 10, 16, 3, "SELECT:YENI", RGB(180, 220, 255));
+        text(W / 2 - textWidth(aMusicOn ? "T:MUZIK ACIK" : "T:MUZIK KAPALI", 10, 3) / 2, 194, 10, 16, 3, aMusicOn ? "T:MUZIK ACIK" : "T:MUZIK KAPALI", RGB(255, 230, 120));
     }
 
     /* bitis ekrani */
     if (state == 2) {
         rect(0, 70, W, 150, RGBA(0, 0, 0, 150));
-        text(W / 2 - textWidth(L("FINISH","FINISH"), 30, 8) / 2, 80, 30, 50, 8, L("FINISH","FINISH"), RGB(255, 255, 255));
+        text(W / 2 - textWidth("FINISH", 30, 8) / 2, 80, 30, 50, 8, "FINISH", RGB(255, 255, 255));
         unsigned medal = finalRank == 1 ? RGB(255, 215, 40) : (finalRank == 2 ? RGB(210, 215, 225) : (finalRank == 3 ? RGB(215, 140, 70) : RGB(255, 255, 255)));
         snprintf(buf, sizeof(buf), "PLACE %d", finalRank);
         text(W / 2 - textWidth(buf, 24, 6) / 2, 142, 24, 40, 6, buf, medal);
         if (newRecord && (((int)(tAnim * 3)) & 1))
-            text(W / 2 - textWidth(L("RECORD","RECORD"), 11, 3) / 2, 46, 11, 18, 3, L("RECORD","RECORD"), RGB(255, 220, 50));
+            text(W / 2 - textWidth("RECORD", 11, 3) / 2, 46, 11, 18, 3, "RECORD", RGB(255, 220, 50));
         if(isChampMode()) {
             const char *mn = champMedal==3?"GOLD":(champMedal==2?"SILVER":"BRONZE");
             text(W/2-textWidth(mn,12,4)/2,46,12,22,4,mn,champMedal==3?RGB(255,215,40):(champMedal==2?RGB(215,220,230):RGB(205,140,80)));
@@ -3019,7 +2940,7 @@ static void drawHUD(void) {
             text(W/2-textWidth(buf,9,3)/2,124,9,16,3,buf,RGB(120,240,255));
         }
         if (((int)(tAnim * 2)) & 1)
-            text(W / 2 - textWidth(L("PRESS START","PRESS START"), 11, 3) / 2, 194, 11, 18, 3, L("PRESS START","PRESS START"), RGB(255, 255, 255));
+            text(W / 2 - textWidth("PRESS START", 11, 3) / 2, 194, 11, 18, 3, "PRESS START", RGB(255, 255, 255));
     }
     if (state == STATE_CUPRESULT) {
         rect(0,64,W,160,RGBA(0,0,0,185));
