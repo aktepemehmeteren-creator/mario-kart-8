@@ -1,0 +1,48 @@
+name: Build Mario Kart PSP
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract assets
+        run: |
+          if [ -f assets_pack.zip ]; then
+            unzip -o assets_pack.zip
+          fi
+          ls -la
+          test -f main.c
+          test -f char_models.h
+          test -f kart_models.h
+          test -f item_models.h
+          test -f font_times.h
+          test -d assets
+
+      - name: Build with PSPDEV
+        run: |
+          docker pull pspdev/pspdev:latest
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/source" \
+            -w /source \
+            pspdev/pspdev:latest \
+            sh -c "rm -rf build && mkdir build && cd build && psp-cmake .. && make -j\$(nproc)"
+
+      - name: Package PSP GAME folder
+        run: |
+          test -f build/EBOOT.PBP
+          rm -rf release
+          mkdir -p release/PSP/GAME/MARIOKART
+          cp build/EBOOT.PBP release/PSP/GAME/MARIOKART/
+          cp -r assets release/PSP/GAME/MARIOKART/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarioKartPSP-GAME
+          path: release/PSP/GAME/MARIOKART/
